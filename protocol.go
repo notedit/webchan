@@ -28,10 +28,10 @@ type WelcomeMsg struct {
     ServerIdent         string
 }
 
-func (self *WelcomeMsg)NewWelcomeMsg(sessionId string) (string,error){
+func (self *WelcomeMsg)Marshal(sessionId string) ([]byte,error){
     data := [...]interface{}{WELCOME,sessionId,"1",SERVER_IDENT}
     b,err := json.Marshal(data)
-    return string(b),err
+    return b,err
 }
 
 type SubscribeMsg struct {
@@ -133,9 +133,9 @@ type EventMsg struct {
     Event               interface{}
 }
 
-func (self *EventMsg) NewEventMsg(channel string, event interface{}) (string,error){
+func (self *EventMsg)Marshal(channel string, event interface{}) ([]byte,error){
     data := [...]interface{}{EVENT,channel,event}
     b,err :=  json.Marshal(data)
-    return string(b),err
+    return b,err
 }
 

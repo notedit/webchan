@@ -24,6 +24,9 @@ const (
 
 // connection is an middleman between the websocket connection and the hub.
 type connection struct {
+    // sessionId
+    SessionId  string
+
     // The websocket connection.
     ws *websocket.Conn
 
@@ -40,8 +43,13 @@ func (c *connection) readPump() {
     c.ws.SetReadLimit(maxMessageSize)
     c.ws.SetReadDeadline(time.Now().Add(readWait))
 
-    // should send the cliet a  WELCOME
-    h.broadcast <- ""
+    welcomeMsg := &WelcomeMsg{}
+    welcomeb,err := welcomeMsg.Marshal(c.SessionId)
+    if err != nil {
+        log.Error("could not create welcome message: %s",err)
+        return
+    }
+    c.send  <- welcomeb
 
     for {
         op, r, err := c.ws.NextReader()
@@ -56,9 +64,18 @@ func (c *connection) readPump() {
             if err != nil {
                 break
             }
-            h.broadcast <- message
+            var data []interface{}
+            err := json.Unmarshal(message,&data)
+            if err != nil {
+                break
+            }
+            c.handleMessage(data)
         }
     }
+}
+
+func (c *connection)handleMessage(message []interface{}) error {
+
 }
 
 // write writes a message with the given opCode and payload.
@@ -74,6 +91,7 @@ func (c *connection) writePump() {
         ticker.Stop()
         c.ws.Close()
     }()
+
     for {
         select {
         case message, ok := <-c.send:
@@ -90,4 +108,36 @@ func (c *connection) writePump() {
             }
         }
     }
+}
+
+
+func ServeRequest(w http.ResponseWriter, r *http.Request){
+    if r.Method != "GET" {
+        http.Error(w,"Method not allowed",405)
+        return
+    }
+    if r.Header.Get("Origin") != "http://" + r.Host {
+        http.Error(w,"Origin not allowed",403)
+        return
+    }
+    ws,err := websocket.Upgrade(w,r.Header,nil,1024,1024)
+    if _,ok := err.(websocket.HandshakeError); ok {
+        http.Error(w,"Not a websocket handshake",400)
+        return
+    } else if err != nil {
+        log.Println(err)
+        return
+    }
+
+    tid,err := uuid.NewV4()
+    if err != nil {
+        log.Error("could not create sessionid")
+        return
+    }
+    id := tid.String()
+
+    c := &connection{SessionId:id,send:make(chan []byte,256),ws:ws}
+    h.register <- c
+    go c.writePump()
+    c.readPump()
 }
