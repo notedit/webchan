@@ -39,6 +39,10 @@ func (c *connection) readPump() {
     }()
     c.ws.SetReadLimit(maxMessageSize)
     c.ws.SetReadDeadline(time.Now().Add(readWait))
+
+    // should send the cliet a  WELCOME
+    h.broadcast <- ""
+
     for {
         op, r, err := c.ws.NextReader()
         if err != nil {

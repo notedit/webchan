@@ -8,3 +8,6 @@ import (
 )
 
 
+type Server struct{
+
+}
