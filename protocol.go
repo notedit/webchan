@@ -38,12 +38,7 @@ type SubscribeMsg struct {
     Channel             string
 }
 
-func (self *SubscribeMsg)UnmarshalJSON(jsonData []byte) error {
-    var data []interface{}
-    err := json.Unmarshal(jsonData,&data)
-    if err != nil {
-        return err
-    }
+func (self *SubscribeMsg)UnmarshalJSON(data []interface{}) error {
     if len(data) != 2 {
         return ErrInvalidNumArgs
     }
@@ -58,12 +53,7 @@ type UnsubscribeMsg struct{
     Channel             string
 }
 
-func (self *UnsubcribeMsg)UnmarshalJSON(jsonData []byte) error {
-    var data []interface{}
-    err := json.Unmarshal(jsonData,&data)
-    if err != nil {
-        return err
-    }
+func (self *UnsubcribeMsg)UnmarshalJSON(data []interface{}) error {
     if len(data) != 2 {
         return ErrInvalidNumArgs
     }
@@ -82,12 +72,7 @@ type PublishMsg struct {
     EligibleList        []string
 }
 
-func (self *PublishMsg)UnmarshalJSON(jsonData []byte) error {
-    var data []interface{}
-    err := json.Unmarshal(jsonData,&data)
-    if err != nil {
-        return err
-    }
+func (self *PublishMsg)UnmarshalJSON(data []interface{}) error {
     if len(data) < 3 || len(data) > 5 {
         return ErrInvalidNumArgs
     }
