@@ -74,8 +74,32 @@ func (c *connection) readPump() {
     }
 }
 
-func (c *connection)handleMessage(message []interface{}) error {
+// 解析message 成对应的struct 
+// 创建channel 和 connection的对应关系
 
+func (c *connection)handleMessage(message []interface{}) error {
+    var typeid int
+    if typeid,ok := message[0].(int); !ok {
+        return
+    }
+    
+    switch typeid {
+    case SUBSCRIBE:
+        subscribeMsg := &SubscribeMsg{}
+        if err := subscribeMsg.UnmarshalJSON(message); err {
+            return
+        }
+    case UNSUBSCRIBE:
+        unsubscribeMsg := &UnsubscribeMsg{}
+        if err := unsubscribeMsg.UnmarshalJSON(message); err {
+            return
+        }
+    case PUBLISH:
+        publishMsg := &PublishMsg{}
+        if err := publishMsg.UnmarshalJSON(message); err {
+            return
+        }
+    }
 }
 
 // write writes a message with the given opCode and payload.
