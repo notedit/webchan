@@ -11,7 +11,7 @@ type mConn interface {
     UniqId() string
 }
 
-type connMap interface {
+type connStore interface {
     AddConn(conn mConn) error
     GetConn(channel string) []mConn
     DelConn(conn mConn) bool
@@ -30,6 +30,70 @@ func (self *connListItem) Less(than llrb.Item) bool {
     selfKey := llrb.String(self.key())
     thanKey := llrb.String(than.(*connListItem).key())
     return selfKey.Less(thanKey)
+}
+
+type connMap struct {
+    mmap    map[string]*connListItem 
+}
+
+func (self *connMap) GetConn(channel string) []mConn {
+    if channel == nil {
+        return nil
+    }
+    clif,ok := self.mmap[channel]
+    if !ok {
+        return nil
+    }
+    return clif.list
+}
+
+func (self *connMap) AddConn(conn mConn) error {
+    if conn == nil {
+        return nil
+    }
+    var ok bool
+    var clif *connListItem
+    clif,ok = self.mmap[conn.Channel()]
+    if !ok {
+        cl := make([]mConn)
+        cl = append(cl,conn)
+        clif = &connListItem{channel:conn.Channel(),cl}
+        self.mmap[conn.Channel()] = clif
+    } else {
+        clif.list = append(clif.list,conn)
+        self.mmap[conn.Channel()] =  clif
+    }
+    return nil
+}
+
+func (self *connMap) DelConn(conn mConn) bool {
+    if conn == nil {
+        return false
+    }
+    var ok bool
+    var clif *connListItem
+    clif,ok = self.mmap[conn.Channel()]
+    if !ok {
+        return false
+    }
+    var i = -1
+    var v  mConn
+    for i,v := range clif.list {
+        if v.UniqueId() == conn.UniqueId() {
+            break
+        }
+    }
+    if v.UniqueId() != conn.UniqueId() {
+        return false
+    }
+    if len(clif.list) == 1 {
+        delete(self.mmap,conn.Channel())
+        return true
+    }
+    clif.list[i] = clif.list[len(clif.list)-1]
+    clif.list = clif.list[:len(clif.list)-1]
+    self.mmap[conn.Channel()] = clif
+    return true
 }
 
 type connTree struct {
@@ -104,9 +168,13 @@ func (self *connTree) DelConn(conn mConn) bool {
 }
 
 
-
-func newConnMap() connMap {
-    ret := new(connTree)
-    ret.tree = llrb.New()
-    return ret
+func newConnStore(type) connStore {
+    if type == "tree" {
+        ret := new(connTree)
+        ret.tree = llrb.New()
+        return ret
+    } else {
+        ret := new(connMap)
+        return ret
+    }
 }
