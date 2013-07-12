@@ -27,11 +27,24 @@ type connection struct {
     // sessionId
     SessionId  string
 
+    // channel 
+    ChannelName string
+
     // The websocket connection.
     ws *websocket.Conn
 
     // Buffered channel of outbound messages.
     send chan []byte
+}
+
+// interface method
+
+func (c *connection) Channel() string {
+    return c.ChannelName
+}
+
+func (c *connection) UniqId() string {
+    return c.SessionId
 }
 
 // readPump pumps messages from the websocket connection to the hub.
