@@ -102,17 +102,52 @@ func (c *connection)handleMessage(message []interface{}) error {
         if err := subscribeMsg.UnmarshalJSON(message); err {
             return
         }
+        c.handleSubscribe(subscribeMsg)
     case UNSUBSCRIBE:
         unsubscribeMsg := &UnsubscribeMsg{}
         if err := unsubscribeMsg.UnmarshalJSON(message); err {
             return
         }
+        c.handleUnsubscribe(unsubscribeMsg)
     case PUBLISH:
         publishMsg := &PublishMsg{}
         if err := publishMsg.UnmarshalJSON(message); err {
             return
         }
+        c.handlePublish(publishMsg)
     }
+}
+
+func (c *connection)handleSubscribe(msg *SubscribeMsg ) {
+    if HUB.unsubscribeConns[c] {
+        HUB.mu.Lock()
+        delete(HUB.unsubscirbeConns,c)
+        HUB.mu.Unlock()
+    }
+    if c.Channel() {
+        HUB.storeLock.Lock()
+        HUB.connStore.DelConn(c)
+        HUB.storeLock.Unlock()
+    }
+    c.ChannelName = msg.Channel
+    HUB.storeLock.Lock()
+    HUB.connStore.AddConn(c)
+    HUB.storeLock.Unlock()
+}
+
+func (c *connection)handleUnsubcribe(msg *UnsubscribeMsg){
+    if c.Channel() == msg.Channel {
+        HUB.storeLock.Lock()
+        HUB.connStore.DelConn(c)
+        HUB.storeLock.Unlock()
+    }
+}
+
+func (c *connection)handlePublish(msg *PublishMsg){
+    if c.Channel() != msg.Channel {
+        return
+    }
+    // todo
 }
 
 // write writes a message with the given opCode and payload.

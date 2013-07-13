@@ -168,7 +168,7 @@ func (self *connTree) DelConn(conn mConn) bool {
 }
 
 
-func newConnStore(type) connStore {
+func newConnStore(type string) connStore {
     if type == "tree" {
         ret := new(connTree)
         ret.tree = llrb.New()
