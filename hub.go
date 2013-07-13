@@ -5,7 +5,7 @@ type Hub struct {
     unsubcribeConns     map[*connection]bool
     storeLock           sync.Mutex
     conns               connStore 
-    event               chan []bype
+    event               chan *EventMsg
     register            chan *connection
     unregister          chan *connection
 }
@@ -13,7 +13,7 @@ type Hub struct {
 var HUB = Hub{
         unsubcribeConns: make(map[*connection]bool),
         conns:          newConnStore("map"),
-        event:          make(chan []byte,255),
+        event:          make(chan *EventMsg,255),
         register:       make(chan *connection),
         unregister:     make(chan *connection)
     }
@@ -23,19 +23,11 @@ func (h *Hub) run() {
     for {
         select {
         case c := <-h.register:
-            h.connections[c] = true
+            h.handleRegiste(c)
         case c := <-h.unregister:
-            delete(h.connections, c)
-            close(c.send)
-        case m := <-h.broadcast:
-            for c := range h.connections {
-                select {
-                case c.send <- m:
-                default:
-                    close(c.send)
-                    delete(h.connections, c)
-                }
-            }
+            h.handleUnregiste(c)
+        case e := <-h.event:
+            h.handleEvent(e)
         }
     }
 }
@@ -63,6 +55,18 @@ func (h *Hub) handleUnregiste(c *connection) {
     }
 }
 
-func (h *Hub) handleEvent(){
-    // todo
+func (h *Hub) handleEvent(e *EventMsg){
+    conns := h.connStore.GetConn(e.Channel)
+    if conns == nil {
+        return
+    }
+    data,err := e.Marshal()
+    for _,c := range conns {
+        select {
+        case c.send <- data:
+        default:
+            h.handleUnregiste(c)
+        }
+    }
+
 }

@@ -67,59 +67,33 @@ func (self *UnsubcribeMsg)UnmarshalJSON(data []interface{}) error {
 type PublishMsg struct {
     Channel             string
     Event               string
-    ExcludeMe           bool
-    ExcludeList         []string
-    EligibleList        []string
+    Data                interface{}
 }
 
 func (self *PublishMsg)UnmarshalJSON(data []interface{}) error {
-    if len(data) < 3 || len(data) > 5 {
+    if len(data) != 4 {
         return ErrInvalidNumArgs
     }
     var ok bool
     if self.Channel,ok = data[1].(string); !ok {
         return &ProtocolError{"invalid channel"}
     }
-    self.Event = data[2]
-    if len(data) > 3 {
-        if self.ExcludeMe,ok = data[3].(bool); !ok {
-            var arr []interface{}
-            if arr,ok = data[3].([]interface{}); !ok && data[3] != nil {
-                return &ProtocolError{"invalid exclude argument"}
-            }
-            for _,v  := range arr {
-                if val,ok := v.(string); !ok {
-                    return &ProtocolError{"invalid exclude list"}
-                } else {
-                    self.ExcludeList = append(self.ExcludeList,val)
-                }
-            }
-
-            if len(data) == 5 {
-                if arr,ok = data[4].([]interface{}); !ok && data[3] != nil {
-                    return &ProtocolError{"invalid eligable list"}
-                }
-                for _,v := range arr {
-                    if val,ok := v.(string); !ok {
-                        return &ProtocolError{"invalid eligalbe list"}
-                    } else {
-                        self.EligibleList = append(self.EligibleList,val)
-                    }
-                }
-            }
-        }
+    if self.Event,ok = data[2].(string); !ok {
+        return &ProtocolError{"invalid event"}
     }
+    self.Data = data[3]
     return nil
 }
 
 
 type EventMsg struct {
     Channel             string
-    Event               interface{}
+    Event               string
+    Data                interface{}
 }
 
-func (self *EventMsg)Marshal(channel string, event interface{}) ([]byte,error){
-    data := [...]interface{}{EVENT,channel,event}
+func (self *EventMsg)Marshal() ([]byte,error){
+    data := []interface{}{EVENT,self.Channel,self.Event,self.Data}
     b,err :=  json.Marshal(data)
     return b,err
 }

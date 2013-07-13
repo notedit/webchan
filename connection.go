@@ -147,7 +147,8 @@ func (c *connection)handlePublish(msg *PublishMsg){
     if c.Channel() != msg.Channel {
         return
     }
-    // todo
+    eventMsg := &EventMsg{Channel:msg.Channel,Event:msg.Event,Data:msg.Data}
+    HUB.event <- eventMsg
 }
 
 // write writes a message with the given opCode and payload.
